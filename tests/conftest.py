@@ -20,8 +20,9 @@ SAMPLE = [
 @pytest.fixture
 def empty_store(tmp_path, monkeypatch):
     """Point cmds at a throwaway, not yet existing store file and a fixed terminal width."""
-    path = tmp_path / "commands.yaml"
-    monkeypatch.setenv("CMDS_FILE", str(path))
+    path = tmp_path / "cmds" / "commands.yaml"
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))  # settings.yaml lands in tmp_path/cmds too
+    monkeypatch.delenv("CMDS_FILE", raising=False)
     monkeypatch.setenv("COLUMNS", "120")
     monkeypatch.setenv("TERM", "dumb")
     return path

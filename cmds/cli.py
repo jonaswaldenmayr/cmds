@@ -31,11 +31,14 @@ examples:
   cmds edit                     open the YAML file in $EDITOR
   cmds style goth               switch the banner (shadow | plain | goth); no arg shows it
   cmds color orange             switch the palette (blue | orange); no arg shows it
+  cmds file ~/dotfiles/cmds.yaml keep the store elsewhere, e.g. in a git repo; no arg shows it
+  cmds autocommit on            commit the store after add/rm (off | on | push)
 
-store: ~/.config/cmds/commands.yaml (override with $CMDS_FILE)
+store: ~/.config/cmds/commands.yaml unless changed with `cmds file` or $CMDS_FILE
 Commands are never executed. Store placeholders like <key>, never real secrets.
 exit codes: 0 ok, 1 user error / no match, 2 store file problem
 """
+AUTOCOMMIT = {"off": "do nothing", "on": "git commit the store", "push": "commit and push"}
 SECRET_RE = re.compile(r"(?i)(password|passwd|secret|token|api[-_]?key)\s*[=:]\s*(?!<)\S{6,}")
 
 
@@ -70,6 +73,10 @@ def build_parser() -> Parser:
     style.add_argument("name", nargs="?", choices=list(STYLES), metavar="name")
     color = sub.add_parser("color", aliases=["colour"], help="show or switch the colour palette")
     color.add_argument("name", nargs="?", choices=list(THEMES), metavar="name")
+    file = sub.add_parser("file", help="show or change where the YAML store lives")
+    file.add_argument("path", nargs="?")
+    auto = sub.add_parser("autocommit", help="git-commit the store after add/rm: off, on, or push")
+    auto.add_argument("mode", nargs="?", choices=list(AUTOCOMMIT), metavar="mode")
     return parser
 
 
@@ -121,6 +128,26 @@ def cmd_search(args: argparse.Namespace, console: Console) -> int:
     return 0
 
 
+def autocommit(path: Path, message: str) -> None:
+    """Commit (and maybe push) just the store file, if the user turned that on."""
+    mode = load_settings().get("autocommit", "off")
+    if mode not in ("on", "push"):
+        return
+
+    def git(*args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", "-C", str(path.parent), *args], capture_output=True, text=True)
+
+    if git("rev-parse", "--is-inside-work-tree").returncode != 0:
+        print(f"cmds: autocommit is {mode} but {path.parent} is not a git repository", file=sys.stderr)
+        return
+    git("add", "--", str(path))
+    result = git("commit", "-q", "-m", message[:72], "--", str(path))
+    if result.returncode == 0 and mode == "push":
+        result = git("push", "-q")
+    if result.returncode != 0:
+        print(f"cmds: git failed: {result.stderr.strip() or result.stdout.strip()}", file=sys.stderr)
+
+
 def cmd_add(args: argparse.Namespace, console: Console) -> int:
     path = store_path()
     entries = load(path)
@@ -137,6 +164,7 @@ def cmd_add(args: argparse.Namespace, console: Console) -> int:
     entries.append(Entry(tech, command, description.strip()))
     save(path, entries)
     console.print(Text(f"added to {tech}: {command}"))
+    autocommit(path, f"cmds add {tech}: {command}")
     return 0
 
 
@@ -162,6 +190,7 @@ def cmd_rm(args: argparse.Namespace, console: Console) -> int:
         return 0
     save(path, [e for e in entries if e is not victim])
     print("deleted")
+    autocommit(path, f"cmds rm {victim.tech}: {victim.command}")
     return 0
 
 
@@ -189,7 +218,21 @@ def cmd_color(args: argparse.Namespace, console: Console) -> int:
     return _setting(console, "color", THEMES, "colour", args.name)
 
 
-COMMANDS = {"all": cmd_all, "style": cmd_style, "color": cmd_color, "colour": cmd_color, "show": cmd_show, "search": cmd_search, "add": cmd_add, "rm": cmd_rm, "edit": cmd_edit}
+def cmd_autocommit(args: argparse.Namespace, console: Console) -> int:
+    return _setting(console, "autocommit", AUTOCOMMIT, "autocommit", args.mode)
+
+
+def cmd_file(args: argparse.Namespace, console: Console) -> int:
+    if args.path:
+        new = Path(args.path).expanduser().resolve()
+        if not new.exists():
+            save(new, load(store_path()))  # carry the current entries over
+        save_setting("file", str(new))
+    print(f"store: {store_path()}")  # plain print: never wrapped, usable in scripts
+    return 0
+
+
+COMMANDS = {"file": cmd_file, "autocommit": cmd_autocommit, "all": cmd_all, "style": cmd_style, "color": cmd_color, "colour": cmd_color, "show": cmd_show, "search": cmd_search, "add": cmd_add, "rm": cmd_rm, "edit": cmd_edit}
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -20,9 +20,37 @@ uv tool install .            # puts `cmds` on your PATH
 uv tool install --reinstall . # after changing the code
 ```
 
-The store lives at `~/.config/cmds/commands.yaml` (or `$XDG_CONFIG_HOME/cmds/commands.yaml`).
-It is created empty on first run. Set `CMDS_FILE=/some/path.yaml`
-to use a different file, for example one kept in a dotfiles repo.
+The store lives at `~/.config/cmds/commands.yaml` by default and is created empty on first
+run. To keep it under version control, point the tool at a file inside a repo:
+
+```sh
+cmds file ~/Code/_tools/cmds/commands.yaml   # saved in ~/.config/cmds/settings.yaml
+cmds file                                    # show where the store is
+```
+
+Existing entries are carried over when the target does not exist yet. `CMDS_FILE=...`
+overrides the saved location for a single run.
+
+With the store inside a git repo, `cmds` can commit it for you after every `add` and `rm`:
+
+```sh
+cmds autocommit on     # one commit per change, e.g. "cmds add git: git stash list"
+cmds autocommit push   # same, then git push (fails loudly when offline)
+cmds autocommit off    # default
+```
+
+Only the store file is committed; other changes in the repo are left alone.
+
+A tidy way to keep the tool public and the commands private is a second, private repo
+cloned into `data/` inside this folder. `data/` is in `.gitignore`, so the tool repo never
+sees it, while autocommit works inside the nested repo as usual:
+
+```sh
+gh repo create cmds-data --private
+git clone git@github.com:<you>/cmds-data.git data
+cmds file ~/Code/_tools/cmds/data/commands.yaml
+cmds autocommit on
+```
 
 ## Usage
 

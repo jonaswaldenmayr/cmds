@@ -194,3 +194,34 @@ def test_color_setting(store, capsys):
     assert "color: orange" in text and "style: goth" in text
     assert main(["colour"]) == 0
     assert "colour: orange" in capsys.readouterr().out
+
+
+def test_file_setting_moves_store(store, tmp_path, capsys):
+    target = tmp_path / "repo" / "commands.yaml"
+    assert main(["file", str(target)]) == 0
+    assert str(target) in capsys.readouterr().out
+    assert len(load(target)) == 6  # existing entries were carried over
+    add("--tech", "kong", "--command", "deck gateway ping")
+    assert len(load(target)) == 7 and len(load(store)) == 6
+    assert main(["file"]) == 0
+    assert str(target) in capsys.readouterr().out
+
+
+def test_autocommit_commits_only_the_store(store, tmp_path, capsys):
+    import subprocess
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git = lambda *a: subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True, check=True)
+    git("init", "-q")
+    git("config", "user.email", "t@example.com")
+    git("config", "user.name", "t")
+    main(["file", str(repo / "commands.yaml")])
+    (repo / "other.txt").write_text("not for cmds\n")  # must stay uncommitted
+    main(["autocommit", "on"])
+    add("--tech", "kong", "--command", "deck gateway ping")
+    log = git("log", "--format=%s").stdout.splitlines()
+    assert log == ["cmds add kong: deck gateway ping"]
+    assert git("status", "--porcelain").stdout.strip() == "?? other.txt"
+    main(["autocommit", "off"])
+    add("--tech", "kong", "--command", "deck gateway diff")
+    assert len(git("log", "--format=%s").stdout.splitlines()) == 1

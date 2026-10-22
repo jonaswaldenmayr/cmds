@@ -28,11 +28,17 @@ HEADER = "# cmds notebook. One entry per list item; tech may be nested like azur
 
 
 
+def config_dir() -> Path:
+    return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "cmds"
+
+
 def store_path() -> Path:
+    """$CMDS_FILE, else the path saved with `cmds file`, else ~/.config/cmds/commands.yaml."""
     if override := os.environ.get("CMDS_FILE"):
         return Path(override).expanduser()
-    base = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
-    return base / "cmds" / "commands.yaml"
+    if configured := load_settings().get("file"):
+        return Path(configured).expanduser()
+    return config_dir() / "commands.yaml"
 
 
 def load(path: Path) -> list[Entry]:
@@ -71,7 +77,7 @@ def save(path: Path, entries: list[Entry]) -> None:
 
 
 def settings_path() -> Path:
-    return store_path().with_name("settings.yaml")
+    return config_dir() / "settings.yaml"
 
 
 def load_settings() -> dict[str, str]:
