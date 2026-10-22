@@ -1,12 +1,14 @@
+```text
   ▄█████  ██▄   ▄██  █████▄   ▄█████
   ██░░░░░ ██▀█▄█▀██░ ██░░▀██  ██▄▄▄░░
   ██░     ██░ ▀░░██░ ██░ ▄██░  ▀▀▀██
-  ▀█████  ██░    ██░ █████▀░░ █████▀░   command notebook 
+  ▀█████  ██░    ██░ █████▀░░ █████▀░   command notebook
     ░░░░░  ░░     ░░  ░░░░░    ░░░░░
+```
 
 # cmds
 
-A personal notebook of shell commands you use often but cannot remember.
+A personal notebook of shell commands you use often.
 It stores command *text* only and never executes anything.
 
 ## Install
