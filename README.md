@@ -1,3 +1,9 @@
+  ▄█████  ██▄   ▄██  █████▄   ▄█████
+  ██░░░░░ ██▀█▄█▀██░ ██░░▀██  ██▄▄▄░░
+  ██░     ██░ ▀░░██░ ██░ ▄██░  ▀▀▀██
+  ▀█████  ██░    ██░ █████▀░░ █████▀░   command notebook 
+    ░░░░░  ░░     ░░  ░░░░░    ░░░░░
+
 # cmds
 
 A personal notebook of shell commands you use often but cannot remember.
