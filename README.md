@@ -6,9 +6,8 @@
     ░░░░░  ░░     ░░  ░░░░░    ░░░░░
 ```
 
-# cmds
 
-A personal notebook of shell commands you use often.
+CMDS is a personal notebook of shell commands you use often.
 It stores command *text* only and never executes anything.
 
 ## Install
